@@ -12,6 +12,13 @@
 #import <BrightcovePlayerSDK/BCOVPlaybackSession.h>
 
 #import <GoogleCast/GoogleCast.h>
+#import "AMPASCastChannel.h"
+
+#define GOOGLE_SUPPORTED_CODECS_FORMAT @"{\"audioSpecList\": [%@]}"
+#define CODECS_NAMES_LIST @[@"mp4a.40.2",@"ac-3",@"mp4a.a5",@"mp4a.a6",@"ec-3",@"mhm1.0x0D"]
+#define CODECS_LIST @{@"mp4a.40.2" : @"{\"mimeType\": \"audio/mp4\", \"codecs\": \"mp4a.40.2\"}",@"ac-3" : @"{\"mimeType\": \"audio/mp4\", \"codecs\": \"ac-3\"}", @"mp4a.a5" : @"{\"mimeType\": \"audio/mp4\", \"codecs\": \"mp4a.a5\"}", @"ec-3" : @"{\"mimeType\": \"audio/mp4\", \"codecs\": \"ec-3\"}", @"mp4a.a6" : @"{\"mimeType\": \"audio/mp4\", \"codecs\": \"mp4a.a6\"}", @"mhm1.0x0D" : @"{\"mimeType\": \"audio/mp4\", \"codecs\": \"mhm1.0x0D\"}"}
+#define JOIN_STRING @","
+
 
 @interface GoogleCastManager ()<GCKSessionManagerListener, GCKUIMediaControllerDelegate>
 
@@ -38,6 +45,7 @@
         _castMediaController = [[GCKUIMediaController alloc] init];
         _castMediaController.delegate = self;
         _posterImageSize = CGSizeMake(480, 720);
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didReceiveCastMessage:) name:AMPAS_CUSTOM_NOTIFICATION_NAME object:nil];
     }
     return self;
 }
@@ -49,38 +57,38 @@
 
 - (BCOVSource *)findPreferredSourceFromSources:(NSArray<BCOVSource *> *)sources withHTTPS:(BOOL)withHTTPS
 {
-    // We prioritize HLS v3 > DASH > MP4
+    // Prioritize DASH > HLS v3 > MP4
     
     NSPredicate *protocolPredicate = [NSPredicate predicateWithFormat:@"url.absoluteString beginswith [cd] %@", withHTTPS ? @"https://" : @"http://"];
     NSArray *filteredSources = [sources filteredArrayUsingPredicate:protocolPredicate];
     
-    BCOVSource *hlsSource;
     BCOVSource *dashSource;
+    BCOVSource *hlsSource;
     BCOVSource *mp4Source;
     
     for (BCOVSource *source in filteredSources) {
-        NSString *urlString = source.url.absoluteString;
+//        NSString *urlString = @"https://ampas-advanced.akamaized.net//wmt:eyJhbGciOiJSUzI1NiIsImtpZCI6Ijg5NDlPU0NBUlNCUCIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MTcyMzUyMDAsImlhdCI6MTU4MzE5MDc4MSwiaXNzIjoiQU1QQVMiLCJ3bWlkIjoiQUFBQUFBQUFBQUJCQkJCQkJCQkJCQkJCQkFBQUFBQkJCQkJBQUFBQUJCQkJCQUFBQUFCQkJCQkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUJCQkJCQUFBQUFCQkJCQkJCQkJCQkJCQkJBQUFBQUJCQkJCQUFBQUFCQkJCQkFBQUFBQkJCQkJCQkJCQkFBQUFBQkJCQkJBQUFBQUFBQUFBQkJCQkJBQUFBQUJCQkJCQUFBQUFBQUFBQUJCQkJCQkJCQkJBQUFBQUJCQkJCQkJCQkJCQkJCQkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFCQkJCQkFBQUFBQUFBQUFBQUFBQUJCQkJCQkJCQkJBQUFBQUFBQUFBQUFBQUFBQUFBQUJCQkJCQkJCQkJCQkJCQkFBQUFBQkJCQkJBQUFBQUJCQkJCQUFBQUFCQkJCQkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUJCQkJCQUFBQUFCQkJCQkJCQkJCQkJCQkJBQUFBQUJCQkJCQUFBQUFCQkJCQkFBQUFBQkJCQkJCQkJCQkFBQUFBQkJCQkJBQUFBQUFBQUFBQkJCQkJBQUFBQUJCQkJCQUFBQUFBQUFBQUJCQkJCQkJCQkJBQUFBQUJCQkJCQkJCQkJCQkJCQkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFCQkJCQkFBQUFBQUFBQUFBQUFBQUJCQkJCQkJCQkJBQUFBQUFBQUFBQUFBQUFBQUFBQUJCQkJCQkJCQkJCQkJCQkFBQUFBQkJCQkJBQUFBQUJCQkJCQUFBQUFCQkJCQkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUJCQkJCQUFBQUFCQkJCQkJCQkJCQkJCQkJBQUFBQUJCQkJCQUFBQUFCQkJCQkFBQUFBQkJCQkJCQkJCQkFBQUFBQkJCQkJBQUFBQUFBQUFBQkJCQkJBQUFBQUJCQkJCQUFBQUFBQUFBQUJCQkJCQkJCQkJBQUFBQUJCQkJCQkJCQkJCQkJCQkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFCQkJCQkFBQUFBQUFBQUFBQUFBQUJCQkJCQkJCQkJBQUFBQUFBQUFBQUFBQUFBQUFBQUJCQkJCQkJCQkJCQkJCQkFBQUFBQkJCQkJBQUFBQUJCQkJCQUFBQUFCQkJCQkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQkJCQkJBQUFBQUJCQkJCQkJCQkJCQkJCQkFBQUFBQkJCQkJBQUFBQUJCQkJCQUFBQUFCQkJCQkJCQkJCQUFBQUFCQkJCQkFBQUFBQUFBQUFCQkJCQkFBQUFBQkJCQkJBQUFBQUFBQUFBQkJCQkJCQkJCQkFBQUFBQkJCQkJCQkJCQkJCQkJCQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUJCQkJCQUFBQUFBQUFBQUFBQUFBQkJCQkJCQkJCQkFBQUFBQUFBQUEiLCJ3bWlkZm10IjoiYWIiLCJ3bXZlciI6MX0.lnwT3A46vKOmpzMc4rsPSOWTioJ9_cydeBBJN8ZkMYE6mJ7il-N46IEmz_BWXgnofYUeOiHspTCclhwGNoklN9PuIu5GCJ0fSNiMnTM3sdddLUDnxmoUzanVvmWM06416JBJqN9I7mJGoF5arnoCtrnrCwK3fxQF4QaMrXmbDw2UDoe0LGqpuHtdHkzz5GELPAehlZAkENv6PSivEjZOP2_vumj7V0KGFAYJHjH8qktWtKxnEGtRE2UyRFPKSpBK421wx3C2BGn_q0uLN6mkc_QABcfAN8nV_BmwwiL9Zx4XXd6FVMRoeRHkTJKhHqNhZhi1vSxJeeDh-tDjvmxObA/20BP_BestPic_FordVsFerrari_W_DYN_V2R1_1080_2CH_dash/20BP_BestPic_FordVsFerrari_W_DYN_V2R1_1080_2CH-playlist.mpd";
         NSString *deliveryMethod = source.deliveryMethod;
-        if ([urlString containsString:@"hls/v3"] && [deliveryMethod isEqualToString:@"application/x-mpegURL"]) {
-            hlsSource = source;
+        if ([source.url.absoluteString containsString:@"dash"] && [deliveryMethod isEqualToString:@"application/dash+xml"]) {
+            dashSource = source;
             // This is our top priority so we can go ahead and break out of the loop
             break;
         }
-        if ([deliveryMethod isEqualToString:@"application/dash+xml"]) {
-            dashSource = source;
+        if ([deliveryMethod isEqualToString:@"application/x-mpegURL"]) {
+            hlsSource = source;
         }
         if ([deliveryMethod isEqualToString:@"video/mp4"]) {
             mp4Source = source;
         }
     }
     
-    if (hlsSource)
-    {
-        return hlsSource;
-    }
-    else if (dashSource)
+    if (dashSource)
     {
         return dashSource;
+    }
+    else if (hlsSource)
+    {
+        return hlsSource;
     }
     else if (mp4Source)
     {
@@ -182,12 +190,10 @@
     
     //FW thingy
     
-    NSDictionary *licenseHeaders = [[NSDictionary alloc] initWithObjectsAndKeys:@"", @"customdata", nil];
+    NSDictionary *licenseHeaders = [[NSDictionary alloc] initWithObjectsAndKeys:@"PEtleU9TQXV0aGVudGljYXRpb25YTUw+PERhdGE+PEdlbmVyYXRpb25UaW1lPjIwMjAtMDktMTYgMTk6MTU6MTguNDIyPC9HZW5lcmF0aW9uVGltZT48RXhwaXJhdGlvblRpbWU+MjAyMC0wOS0yMyAxOToxNToxOC40MjI8L0V4cGlyYXRpb25UaW1lPjxVbmlxdWVJZD41ZGI0MTFiMWQ0YjU0MTQ1ODkwMTc0NzE3ZjBmNjlmOTwvVW5pcXVlSWQ+PFJTQVB1YktleUlkPmYyNDhlZDQ1MjQ5M2M3NzA2NWMwMzBmYTlhZjk3YjZiPC9SU0FQdWJLZXlJZD48V2lkZXZpbmVQb2xpY3kgZmxfQ2FuUGxheT0idHJ1ZSIgZmxfQ2FuUGVyc2lzdD0iZmFsc2UiIC8+PFdpZGV2aW5lQ29udGVudEtleVNwZWMgVHJhY2tUeXBlPSJIRCI+PFNlY3VyaXR5TGV2ZWw+MTwvU2VjdXJpdHlMZXZlbD48L1dpZGV2aW5lQ29udGVudEtleVNwZWM+PEZhaXJQbGF5UG9saWN5IHBlcnNpc3RlbnQ9ImZhbHNlIiAvPjxMaWNlbnNlIHR5cGU9InNpbXBsZSIgLz48L0RhdGE+PFNpZ25hdHVyZT5JSE5nUGtqL3NTNDhvK014L1haTC9IQmNMb0FIYjY0QVpwZEo1NWx1dDgzOXFCUG9WRmwweUtBZzdjQ3Y0Q0puUFZXdGdLT1ZPZFUyV250VzQvYjIvSTVQSUVSa25UOEJKMzY2YXF6YXVBeVBsM1VqekFNV3VPUzJTcHR4eUF3L25RRUdhaFdSME5IYkFZdloyNHZmZHJDdVhoMnNJdGZzcmYrY0VlUGJneVNhcFcySW5GNUlSMnBIQ3B6S0JzdUNpQVByY1NCNzNMTUFtZFVSemdKd1M0ODVCZ3J1N0lZZVgzSi9WajVETzdLVDFQL1lYVkRIck5pdEVlSWRubFRZcGZmbGlFWGluVU5SRHJRZmpnOUZRRHFqY0h6cUZ5WEVOQzJuRDhzWDBhTnJ4NzUyMUVlQUc2QmdXeE9vdVFIajI2OXlNUnQzdUl3SElxa0JrdWM1cnc9PTwvU2lnbmF0dXJlPjwvS2V5T1NBdXRoZW50aWNhdGlvblhNTD4=", @"customdata", nil];
 
     
     NSDictionary *jsonObjDict = [[NSDictionary alloc] initWithObjectsAndKeys:@"https://wv-keyos.licensekeyserver.com/", @"licenseUrl", licenseHeaders, @"licenseKeyHeaders", nil];
-
-    NSData *data = [NSJSONSerialization dataWithJSONObject:jsonObjDict options:NSJSONWritingPrettyPrinted error:nil];
     
     GCKMediaInformationBuilder *builder = [[GCKMediaInformationBuilder alloc] init];
     builder.contentID = videoURL;
@@ -196,7 +202,7 @@
     builder.metadata = metadata;
     builder.streamDuration = durationNumber.intValue;
     builder.mediaTracks = mediaTracks;
-    builder.customData = data;
+    builder.customData = jsonObjDict;
 
     self.castMediaInfo = [builder build];
 }
@@ -215,6 +221,7 @@
     options.autoplay = self.delegate.playbackController.isAutoPlay;
     if (castSession)
     {
+        [self addAMPASCustomChannel:castSession];
         [castSession.remoteMediaClient loadMedia:self.castMediaInfo withOptions:options];
     }
 }
@@ -324,6 +331,47 @@
     }
     
     self.castStreamPosition = mediaStatus.streamPosition;
+}
+
+#pragma mark - AMPAS Custom Cast Channel - 5.1 Audio
+
+- (void)addAMPASCustomChannel:(GCKCastSession *)session {
+    AMPASCastChannel *ampasCastChannel = [[AMPASCastChannel alloc] initWithNamespace:AMPAS_CUSTOM_CHANNEL];
+    [session addChannel: ampasCastChannel];
+    [ampasCastChannel setDelegate:self];
+    [self sendTextMessageThroughCustomChannel:ampasCastChannel];
+}
+
+- (void)sendTextMessageThroughCustomChannel:(AMPASCastChannel *)ampasCastChannel {
+    NSMutableArray *foundCodecsInSource = [[NSMutableArray alloc] init];
+    // Search for codecs in the cast media info url
+    if ([_castMediaInfo contentID]) {
+        for (NSString *codecName in CODECS_LIST) {
+            if ([[_castMediaInfo contentID] containsString:codecName]) {
+                [foundCodecsInSource addObject:CODECS_LIST[codecName]];
+            }
+        }
+        if ([foundCodecsInSource count] > 0) {
+            // Join filtered codecs array into a string separated by comma
+            NSString *joinedComponents = [foundCodecsInSource componentsJoinedByString:JOIN_STRING];
+            NSString *codecs = [NSString stringWithFormat:GOOGLE_SUPPORTED_CODECS_FORMAT, joinedComponents];
+            // Send list of codecs parsed from cast media info url
+            [ampasCastChannel sendTextMessage:codecs error: nil];
+        }
+    }
+    
+}
+
+
+- (void)didReceiveCastMessage:(NSNotification *)notification {
+    // Receive the codecs supported from the Receiver
+    if (notification.userInfo[MESSAGE_KEY]) {
+        // Convert the message string into a NSDictionary
+        NSString *message = notification.userInfo[MESSAGE_KEY];
+        NSData *data = [message dataUsingEncoding:NSUTF8StringEncoding];
+        NSDictionary *codecsDictionary = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+        NSLog(@"%@", codecsDictionary);
+    }
 }
 
 @end

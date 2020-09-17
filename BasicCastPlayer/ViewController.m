@@ -18,9 +18,9 @@
 //static NSString * const kViewControllerAccountID = @"3636334164001";
 //static NSString * const kViewControllerVideoID = @"5686335954001";
 
-static NSString * const kSourceUrl = @"";
-static NSString * const kRequestKeyUrl = @"";
-static NSString * const kCertificateKeyUrl = @"";
+static NSString * const kSourceUrl = @"https://ampas-2019-os-nsu.akamaihd.net/86705/1080_51_Test_02_dash/1080_51_Test_02-ac-3_avc1_ec-3_mp4a-playlist.mpd";
+static NSString * const kRequestKeyUrl = @"https://fp-keyos.licensekeyserver.com/getkey";
+static NSString * const kCertificateKeyUrl = @"https://fp-keyos.licensekeyserver.net/cert/f248ed452493c77065c030fa9af97b6b.der";
 
 @interface ViewController ()<GoogleCastManagerDelegate, BCOVPlaybackControllerDelegate>
 
@@ -64,8 +64,8 @@ static NSString * const kCertificateKeyUrl = @"";
     
 
     
-    // self.playbackService = [[BCOVPlaybackService alloc] initWithAccountId:kViewControllerAccountID
-    //                                                            policyKey:kViewControllerPlaybackServicePolicyKey];
+    self.playbackService = [[BCOVPlaybackService alloc] initWithAccountId:@"6056665239001"
+                                                                policyKey:@"BCpkADawqM3YRyTQ4hZzmqTk-Oegl3lHc_iLPz29j-aHgdZy0hLaKVj-TlITBvYppMXWpz4mGh60AgWogCIF42vzi1lkj9vgAjYNjAwjd8xeW-JwTb1yI4XPq0mGXaXx4KY-Nu7MwFX0QsQi"];
 }
 
 - (void)viewDidLoad
@@ -101,12 +101,18 @@ static NSString * const kCertificateKeyUrl = @"";
                                               ]];
     _playerView = playerView;
                       
-    // Dummy Catalog call
+    //Dummy Catalog call
     //[self requestContentFromPlaybackService];
 
     BCOVVideo* newVideo = [self createVideo];
     [self.playbackController setVideos:@[ newVideo ]];
-        [self.playbackController addSessionConsumer:self.googleCastManager];
+    
+//    [self.playbackService findPlaylistWithReferenceID:@"playlist-for-chromecasting"
+//                                           parameters:nil
+//                                           completion:^(BCOVPlaylist *playlist, NSDictionary *jsonResponse, NSError *error) {
+//        [self.playbackController setVideos:playlist.videos];
+//    }];
+    [self.playbackController addSessionConsumer:self.googleCastManager];
 }
 
 - (BCOVVideo*)createVideo
@@ -123,7 +129,7 @@ static NSString * const kCertificateKeyUrl = @"";
     // ----------------------------------------
     mutableSource[@"src"] = kSourceUrl;
     mutableSource[@"ext_x_version"] = @"5";
-    mutableSource[@"type"] = @"application/x-mpegURL";
+    mutableSource[@"type"] = @"application/dash+xml";
     
     NSMutableDictionary *mutableKeySystem = [[NSMutableDictionary alloc] init];
     [mutableKeySystem addEntriesFromDictionary: mutableSource[@"key_systems"]];

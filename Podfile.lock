@@ -1,0 +1,32 @@
+PODS:
+  - Brightcove-Player-Core (6.7.10)
+  - Brightcove-Player-GoogleCast (6.7.10):
+    - Brightcove-Player-Core (= 6.7.10)
+    - google-cast-sdk (= 4.4.5)
+  - google-cast-sdk (4.4.5):
+    - google-cast-sdk/Core (= 4.4.5)
+    - Protobuf (~> 3.0)
+  - google-cast-sdk/Core (4.4.5):
+    - Protobuf (~> 3.0)
+  - Protobuf (3.13.0)
+
+DEPENDENCIES:
+  - Brightcove-Player-GoogleCast
+
+SPEC REPOS:
+  https://github.com/brightcove/BrightcoveSpecs.git:
+    - Brightcove-Player-Core
+    - Brightcove-Player-GoogleCast
+  https://github.com/CocoaPods/Specs.git:
+    - google-cast-sdk
+    - Protobuf
+
+SPEC CHECKSUMS:
+  Brightcove-Player-Core: a986581e60d7eb1539b69bc5b900758fc49c7cd1
+  Brightcove-Player-GoogleCast: e2952daa68803ddab043c8f6d0f4cab6fb258b92
+  google-cast-sdk: 26aba79950b712035efb6801dee2d7db2b7f58e5
+  Protobuf: 3dac39b34a08151c6d949560efe3f86134a3f748
+
+PODFILE CHECKSUM: af549b8e30fd3ab70e2fbaed0fa15d389a7bd662
+
+COCOAPODS: 1.9.3

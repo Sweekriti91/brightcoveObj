@@ -42,8 +42,10 @@
     }
     
     // More Info @ https://developers.google.com/cast/docs/ios_sender/integrate#initialize_the_cast_context
-    GCKDiscoveryCriteria *discoveryCriteria = [[GCKDiscoveryCriteria alloc] initWithApplicationID:@"17F1E2B1"];
+    GCKDiscoveryCriteria *discoveryCriteria = [[GCKDiscoveryCriteria alloc] initWithApplicationID:@"29D70EC8"];
     GCKCastOptions *options = [[GCKCastOptions alloc] initWithDiscoveryCriteria:discoveryCriteria];
+    options.physicalVolumeButtonsWillControlDeviceVolume = YES;
+    options.stopReceiverApplicationWhenEndingSession = YES;
     [GCKCastContext setSharedInstanceWithOptions:options];
     
     // More Info @ https://developers.google.com/cast/docs/ios_sender/integrate#add_expanded_controller

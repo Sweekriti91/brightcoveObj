@@ -338,7 +338,6 @@
 - (void)addAMPASCustomChannel:(GCKCastSession *)session {
     AMPASCastChannel *ampasCastChannel = [[AMPASCastChannel alloc] initWithNamespace:AMPAS_CUSTOM_CHANNEL];
     [session addChannel: ampasCastChannel];
-    [ampasCastChannel setDelegate:self];
     [self sendTextMessageThroughCustomChannel:ampasCastChannel];
 }
 
